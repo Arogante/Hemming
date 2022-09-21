@@ -12,6 +12,11 @@ namespace Hemming.Services.Implementations
     class HemmingCoder : ICoder<BitArray>
     {
         BitArray[] code;
+        IStringConverter<BitArray> _converter;
+        public HemmingCoder( IStringConverter<BitArray> converter)
+        {
+            _converter = converter;
+        }
 
         public BitArray[] Code(string text)
         {
@@ -24,6 +29,7 @@ namespace Hemming.Services.Implementations
 
         public IBaseResponse<string> Decode(BitArray[] code)
         {
+            
             bool isErrors = false;//флаг были ли ошибки
             byte[] text=new byte[code.Length];
             for (int i = 0; i < code.Length; i++) {
@@ -77,16 +83,9 @@ namespace Hemming.Services.Implementations
             for (int i = 0; i < code.Length; i++)//финальный бит четности
                 control= control ^ code[i];
             controls[4] = control ;
-            /*bool[] mistakes=new bool[5];//массив для несоответствий
-            int controlInd = 1;
-            for (int i=0; i < mistakes.Length-1; i++) {//сравниваем контрольные биты с вычисленными самостоятельно
-                mistakes[i] = (controls[i] == code[controlInd-1]);
-                controlInd *= 2;
-            }
-            mistakes[4]= controls[4] == code[code.Length-1];*/
             int missPosition = 0;
             int controlInd = 1;
-            for (int i = 0; i < controls.Length - 1; i++) {//рассчитываем позицию ошибки
+            for (int i = 0; i < controls.Length - 1; i++) {//считаем позицию ошибки
                 if (controls[i])
                     missPosition += controlInd;
                 controlInd *= 2;
@@ -95,14 +94,17 @@ namespace Hemming.Services.Implementations
             if (missPosition == 0 && controls[controls.Length - 1] == false)
                 resp.Description = "ok";
             else if (missPosition != 0 && controls[controls.Length - 1] == true)
+            {
                 resp.Description = "1 error";
+                code[missPosition]=!code[missPosition];//
+            }
             else
                 resp.Description = "2 errors";
-
+            resp.errIndex = missPosition - 1;
             controlInd = 1;
             BitArray symbol = new BitArray(8, false);
             int j = 0;
-            for (int i = 0; i < code.Length-1; i++) {
+            for (int i = 0; i < code.Length-1; i++) {//перевеодим обратно в ASCII байт
                 if (i == controlInd)
                 {
                     controlInd *= 2;

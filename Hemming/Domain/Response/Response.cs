@@ -8,6 +8,7 @@ namespace Hemming.Domain.Response
 {
     public class BaseResponse<T> : IBaseResponse<T>
     {
+        public int errIndex { get; set; }
         public string Description { get; set; }
         public T Data { get; set; }
     }
