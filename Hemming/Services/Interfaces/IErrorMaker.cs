@@ -1,5 +1,4 @@
-﻿using Hemming.Domain.Response;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Hemming.Services.Interfaces
 {
-    interface ILogger
+    interface IErrorMaker<T>
     {
-        public void Log(string message);
+        public T MakeError(T data, int count);
     }
 }

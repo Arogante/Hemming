@@ -9,13 +9,13 @@ using System.Collections;
 
 namespace Hemming.Services.Implementations
 {
-    class ConsoleLogger : ILogger<BitArray>
+    class ConsoleLogger : ILogger
     {
 
 
-        public void Log(IBaseResponse<BitArray> response)
+        public void Log(string message)
         {
-            throw new NotImplementedException();
+            Console.Write(message);
         }
     }
 }

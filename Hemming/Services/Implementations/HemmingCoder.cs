@@ -13,9 +13,11 @@ namespace Hemming.Services.Implementations
     {
         BitArray[] code;
         IStringConverter<BitArray> _converter;
-        public HemmingCoder( IStringConverter<BitArray> converter)
+        ILogger _logger;
+        public HemmingCoder( IStringConverter<BitArray> converter,ILogger logger)
         {
             _converter = converter;
+            _logger = logger;
         }
 
         public BitArray[] Code(string text)
@@ -34,9 +36,38 @@ namespace Hemming.Services.Implementations
             byte[] text=new byte[code.Length];
             for (int i = 0; i < code.Length; i++) {
                 BaseResponse<byte> resp = DecodeByte(code[i]);
-                if (resp.Description != "ok")
+                text[i] = resp.Data;//записываем декодированный символ в массив байт
+                _logger.Log("Символ: ");
+                Console.ForegroundColor = ConsoleColor.DarkBlue;
+                Console.Write((char)resp.Data);
+                Console.Write(" ");
+                int controlInd = 1;
+                for (int j = 0; j < code[i].Length - 1; j++) {//отображаем код хэмминга
+                    Console.ResetColor();
+                    if (j == controlInd-1) {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write(code[i][j] ? 1 : 0);
+                        controlInd *= 2;
+                        continue;
+                    }
+                    Console.Write(code[i][j] ? 1 : 0);
+                }
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write(code[i][code[i].Length - 1] ? 1 : 0);
+                Console.ForegroundColor = ConsoleColor.White;
+                byte[]data=new byte[1];
+                data[0]=resp.Data;
+                Console.Write(" Получили при декодировании: "+_converter.ToString(new BitArray(data))+" ");//отображаем декодированный массив бит
+                if (resp.Description != "ok")//показываем статус декодирования
+                {
                     isErrors = true;
-                text[i] = resp.Data;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                }
+                else
+                    Console.ForegroundColor = ConsoleColor.Green;
+                _logger.Log(resp.Description);
+                Console.ForegroundColor= ConsoleColor.White;
+                Console.WriteLine();  
             }
             string res = Encoding.ASCII.GetString(text);
             BaseResponse<string> finalResp= new BaseResponse<string>();
@@ -95,17 +126,17 @@ namespace Hemming.Services.Implementations
                 resp.Description = "ok";
             else if (missPosition != 0 && controls[controls.Length - 1] == true)
             {
-                resp.Description = "1 error";
-                code[missPosition]=!code[missPosition];//
+                resp.Description = "исправлена 1 ошибка в "+missPosition+" бите";
+                code[missPosition-1]=!code[missPosition-1];//
             }
             else
-                resp.Description = "2 errors";
+                resp.Description = "2 ошибки";
             resp.errIndex = missPosition - 1;
             controlInd = 1;
             BitArray symbol = new BitArray(8, false);
             int j = 0;
             for (int i = 0; i < code.Length-1; i++) {//перевеодим обратно в ASCII байт
-                if (i == controlInd)
+                if (i+1 == controlInd)
                 {
                     controlInd *= 2;
                     continue;
@@ -116,8 +147,6 @@ namespace Hemming.Services.Implementations
             byte res = ConvertToByte(symbol);
             resp.Data = res;
             return resp;
-            
-
         }
 
         byte ConvertToByte(BitArray bits)
